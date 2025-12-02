@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>認識身心障礙者權利公約 (CRPD) - 易讀版</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* 基礎設定 */
+        :root {
+            --highlight-color: #fef08a; /* 黃色高亮 */
+            --focus-border: #2563eb;
+        }
+
+        /* 預設根目錄字體大小，JS 會控制這裡來放大縮小全站 */
+        html {
+            font-size: 16px; 
+        }
+
+        body {
+            font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+            background-color: #f3f4f6; /* 淺灰背景護眼 */
+        }
+
+        /* 朗讀時的高亮樣式 */
+        .reading-active {
+            background-color: var(--highlight-color);
+            border-radius: 8px;
+            padding: 4px;
+            box-shadow: 0 0 0 4px var(--highlight-color);
+            transition: background-color 0.2s;
+        }
+
+        /* 可點擊區域的互動感 */
+        .readable-block {
+            cursor: pointer;
+            transition: transform 0.1s, background-color 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .readable-block:hover {
+            background-color: #e5e7eb;
+            border-radius: 8px;
+        }
+        
+        .readable-block:active {
+            transform: scale(0.99);
+        }
+
+        /* 控制面板固定在上方 */
+        .control-panel {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background-color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- 頂部控制面板 -->
+    <header class="control-panel p-4">
+        <div class="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <h1 class="text-xl font-bold text-blue-700 flex items-center gap-2">
+                <i data-lucide="book-open" class="w-6 h-6"></i>
+                CRPD 易讀版
+            </h1>
+            
+            <div class="flex flex-wrap items-center justify-center gap-4 w-full md:w-auto">
+                <!-- 播放控制 -->
+                <div class="flex gap-2">
+                    <button id="btn-read-all" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full font-bold shadow transition">
+                        <i data-lucide="play-circle" class="w-5 h-5"></i> 全文朗讀
+                    </button>
+                    <button id="btn-stop" class="flex items-center gap-2 bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-full font-bold transition">
+                        <i data-lucide="square" class="w-5 h-5"></i> 停止
+                    </button>
+                </div>
+
+                <!-- 設定按鈕 (展開選單) -->
+                <button id="btn-settings" class="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-full font-bold transition">
+                    <i data-lucide="settings" class="w-5 h-5"></i> 設定
+                </button>
+            </div>
+        </div>
+
+        <!-- 隱藏的設定選單 -->
+        <div id="settings-menu" class="hidden max-w-4xl mx-auto mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- 字體大小 (修改為滑桿) -->
+                <div class="flex flex-col gap-2">
+                    <label class="font-bold text-gray-700 flex items-center gap-2">
+                        <i data-lucide="type" class="w-5 h-5"></i> 字體大小
+                    </label>
+                    <input type="range" id="font-size-range" min="100" max="200" step="10" value="100" class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                    <div class="flex justify-between text-sm text-gray-500">
+                        <span>正常</span>
+                        <span>特大</span>
+                    </div>
+                </div>
+
+                <!-- 語速 -->
+                <div class="flex flex-col gap-2">
+                    <label class="font-bold text-gray-700 flex items-center gap-2">
+                        <i data-lucide="gauge" class="w-5 h-5"></i> 朗讀速度
+                    </label>
+                    <input type="range" id="rate-range" min="0.5" max="1.5" step="0.1" value="1" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-gray-600">
+                    <div class="flex justify-between text-sm text-gray-500">
+                        <span>慢</span>
+                        <span>正常</span>
+                        <span>快</span>
+                    </div>
+                </div>
+
+                <!-- 語音選擇 -->
+                <div class="flex flex-col gap-2">
+                    <label class="font-bold text-gray-700 flex items-center gap-2">
+                        <i data-lucide="mic" class="w-5 h-5"></i> 選擇聲音
+                    </label>
+                    <select id="voice-select" class="w-full p-2 border border-gray-300 rounded bg-white">
+                        <option value="">載入中...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main id="content-area" class="max-w-4xl mx-auto p-4 md:p-8 space-y-12 pb-24">
+        
+        <!-- 提示訊息 -->
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r shadow-sm readable-block" data-text="歡迎使用 CRPD 易讀網頁。點擊任何文字，我就會唸給您聽。">
+            <div class="flex gap-4">
+                <div class="flex-shrink-0 text-blue-500">
+                    <i data-lucide="info" class="w-8 h-8"></i>
+                </div>
+                <div>
+                    <h2 class="font-bold text-lg mb-1">使用說明</h2>
+                    <p class="text-base text-gray-700">點擊任何文字，我就會唸給您聽。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 封面/標題區 -->
+        <section class="text-center space-y-4 py-8 bg-white rounded-2xl shadow-sm p-6">
+            <div class="readable-block p-2" data-text="認識身心障礙者權利公約。CRPD。The Convention on the Rights of Persons with Disabilities。">
+                <h1 class="text-3xl md:text-4xl font-black text-blue-800 mb-2">認識身心障礙者權利公約</h1>
+                <h2 class="text-2xl font-bold text-blue-600">CRPD</h2>
+                <p class="text-gray-500 font-medium">The Convention on the Rights of Persons with Disabilities</p>
+            </div>
+            <div class="readable-block p-2" data-text="身心障礙是人類多樣性的一部分。">
+                <div class="inline-block bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full font-bold text-lg">
+                    身心障礙是人類多樣性的一部分
+                </div>
+            </div>
+        </section>
+
+        <!-- 什麼是CRPD -->
+        <section class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="bg-blue-600 p-4 readable-block" data-text="什麼是CRPD？">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                    <i data-lucide="help-circle" class="w-8 h-8"></i>
+                    什麼是CRPD?
+                </h2>
+            </div>
+            <div class="p-6 space-y-6">
+                <div class="readable-block" data-text="CRPD是21世紀第一個人權公約，於2006年通過、2008年生效。">
+                    <p class="text-lg leading-relaxed">
+                        <span class="font-bold text-blue-700">CRPD</span> 是21世紀第一個人權公約，<br>
+                        於2006年通過、2008年生效。
+                    </p>
+                </div>
+                <div class="readable-block" data-text="目的是為了促進、保障及確保身心障礙者與非身心障礙者有同等的權利。">
+                    <p class="text-lg leading-relaxed">
+                        目的是為了促進、保障及確保身心障礙者與非身心障礙者有 <span class="font-bold text-blue-700">同等的權利</span>。
+                    </p>
+                </div>
+                <div class="readable-block" data-text="我國於2014年透過CRPD施行法，自主承諾履行國際公約規定，期待透過公私部門的共同努力，營造更友善共融的社會環境。">
+                    <p class="text-lg leading-relaxed">
+                        我國於2014年透過CRPD施行法，自主承諾履行國際公約規定，期待透過公私部門的共同努力，營造更友善共融的社會環境。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8大原則 -->
+        <section class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="bg-green-600 p-4 readable-block" data-text="CRPD的精神，八大原則。">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                    <i data-lucide="list-checks" class="w-8 h-8"></i>
+                    CRPD的精神 - 8大原則
+                </h2>
+            </div>
+            <div class="p-6 grid md:grid-cols-2 gap-4">
+                <!-- 列表項目 -->
+                <div class="readable-block bg-green-50 p-4 rounded-xl flex items-start gap-3" data-text="一、尊重個人自主與個人自立。">
+                    <div class="bg-green-200 text-green-800 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">1</div>
+                    <p class="text-lg font-medium">尊重個人自主與個人自立</p>
+                </div>
+                <div class="readable-block bg-green-50 p-4 rounded-xl flex items-start gap-3" data-text="二、不歧視。">
+                    <div class="bg-green-200 text-green-800 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">2</div>
+                    <p class="text-lg font-medium">不歧視</p>
+                </div>
+                <div class="readable-block bg-green-50 p-4 rounded-xl flex items-start gap-3" data-text="三、完整且有效的社會參與及社會融合。">
+                    <div class="bg-green-200 text-green-800 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">3</div>
+                    <p class="text-lg font-medium">完整且有效的社會參與及社會融合</p>
+                </div>
+                <div class="readable-block bg-green-50 p-4 rounded-xl flex items-start gap-3" data-text="四、尊重每個人不同之處，身心障礙者是人類多樣性一部分。">
+                    <div class="bg-green-200 text-green-800 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">4</div>
+                    <p class="text-lg font-medium">尊重每個人不同之處，<br><span class="text-base text-gray-600">身心障礙者是人類多樣性一部分</span></p>
+                </div>
+                <div class="readable-block bg-green-50 p-4 rounded-xl flex items-start gap-3" data-text="五、機會均等。">
+                    <div class="bg-green-200 text-green-800 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">5</div>
+                    <p class="text-lg font-medium">機會均等</p>
+                </div>
+                <div class="readable-block bg-green-50 p-4 rounded-xl flex items-start gap-3" data-text="六、可及性與無障礙。">
+                    <div class="bg-green-200 text-green-800 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">6</div>
+                    <p class="text-lg font-medium">可及性 / 無障礙</p>
+                </div>
+                <div class="readable-block bg-green-50 p-4 rounded-xl flex items-start gap-3" data-text="七、男女平等。">
+                    <div class="bg-green-200 text-green-800 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">7</div>
+                    <p class="text-lg font-medium">男女平等</p>
+                </div>
+                <div class="readable-block bg-green-50 p-4 rounded-xl flex items-start gap-3" data-text="八、尊重兒童，保障身心障礙兒童的權利。">
+                    <div class="bg-green-200 text-green-800 font-bold rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">8</div>
+                    <p class="text-lg font-medium">尊重兒童，保障身心障礙兒童的權利</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 如何營造友善環境 -->
+        <section class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="bg-orange-500 p-4 readable-block" data-text="我們可以如何營造更友善共融的環境？">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                    <i data-lucide="heart-handshake" class="w-8 h-8"></i>
+                    我們可以如何營造更友善共融的環境?
+                </h2>
+            </div>
+            
+            <div class="p-6 space-y-8">
+                <!-- 點1 -->
+                <div>
+                    <div class="readable-block mb-4" data-text="一、認識身心障礙者的多元性，以平等態度互動。">
+                        <h3 class="text-xl font-bold text-orange-700">1. 認識身心障礙者的多元性，以平等態度互動</h3>
+                    </div>
+                    
+                    <div class="grid gap-4">
+                        <div class="readable-block bg-orange-50 p-4 rounded-xl" data-text="例如：提供協助前應徵詢障礙者是否需要協助、如何協助，不應假定障礙者一定都需要幫助。">
+                            <span class="font-bold text-orange-600 block mb-1">詢問協助</span>
+                            <p>提供協助前應徵詢障礙者是否需要協助、如何協助，不應假定障礙者一定都需要幫助。</p>
+                        </div>
+                        
+                        <div class="readable-block bg-orange-50 p-4 rounded-xl" data-text="例如：與隱性障礙者溝通時，以明確、簡單的方式表達，避免艱澀難懂的文字，並減少外在刺激，如環境噪音、燈光、人流等，有助於其集中注意力或緩和情緒。">
+                            <span class="font-bold text-orange-600 block mb-1">隱性障礙者溝通</span>
+                            <p>溝通時以明確、簡單的方式表達，避免艱澀難懂的文字，並減少外在刺激（如環境噪音、燈光、人流等），有助於其集中注意力或緩和情緒。</p>
+                        </div>
+
+                        <div class="readable-block bg-orange-50 p-4 rounded-xl" data-text="例如：與聽覺障礙者溝通時，請面對面，稍微放慢語速，以一般語調與聲量表達清楚，勿遮住嘴型。">
+                            <span class="font-bold text-orange-600 block mb-1">聽覺障礙者溝通</span>
+                            <p>請面對面，稍微放慢語速，以一般語調與聲量表達清楚，勿遮住嘴型。</p>
+                        </div>
+
+                        <div class="readable-block bg-orange-50 p-4 rounded-xl" data-text="例如：學習人導法，口訣是問、拍、引、報。遇到需要協助的視覺障礙者時，能夠正確且安全引導。">
+                            <span class="font-bold text-orange-600 block mb-1">視覺障礙者引導 (人導法)</span>
+                            <p>學習「人導法」(口訣:問拍引報)，遇到需要協助的視覺障礙者時，能夠正確且安全引導。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 點2 -->
+                <div>
+                    <div class="readable-block mb-4" data-text="二、正確稱呼身心障礙者。">
+                        <h3 class="text-xl font-bold text-orange-700">2. 正確稱呼身心障礙者</h3>
+                    </div>
+
+                    <div class="space-y-3">
+                        <!-- Card 1 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-0 border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                            <div class="bg-blue-50 p-4 readable-block border-b md:border-b-0 md:border-r border-gray-200" data-text="建議說法：身心障礙者，簡稱障礙者。">
+                                <div class="flex items-center gap-2 mb-2 text-blue-700 font-bold"><i data-lucide="thumbs-up" class="w-5 h-5"></i> 建議說法</div>
+                                <div class="text-lg">身心障礙者 (簡稱障礙者)</div>
+                            </div>
+                            <div class="bg-red-50 p-4 readable-block" data-text="爭議說法：殘障者、傷殘者、殘疾者、殘廢者。">
+                                <div class="flex items-center gap-2 mb-2 text-red-700 font-bold"><i data-lucide="thumbs-down" class="w-5 h-5"></i> 爭議說法</div>
+                                <div class="text-lg text-gray-600">殘障者、傷殘者、殘疾者、殘廢者</div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-0 border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                            <div class="bg-blue-50 p-4 readable-block border-b md:border-b-0 md:border-r border-gray-200" data-text="建議說法：肢體障礙者。">
+                                <div class="flex items-center gap-2 mb-2 text-blue-700 font-bold"><i data-lucide="thumbs-up" class="w-5 h-5"></i> 建議說法</div>
+                                <div class="text-lg">肢體障礙者</div>
+                            </div>
+                            <div class="bg-red-50 p-4 readable-block" data-text="爭議說法：瘸子。">
+                                <div class="flex items-center gap-2 mb-2 text-red-700 font-bold"><i data-lucide="thumbs-down" class="w-5 h-5"></i> 爭議說法</div>
+                                <div class="text-lg text-gray-600">瘸子</div>
+                            </div>
+                        </div>
+
+                        <!-- Card 3 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-0 border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                            <div class="bg-blue-50 p-4 readable-block border-b md:border-b-0 md:border-r border-gray-200" data-text="建議說法：智能障礙者、精神障礙者、心理社會障礙者。">
+                                <div class="flex items-center gap-2 mb-2 text-blue-700 font-bold"><i data-lucide="thumbs-up" class="w-5 h-5"></i> 建議說法</div>
+                                <div class="text-lg">智能障礙者、精神障礙者、心理社會障礙者</div>
+                            </div>
+                            <div class="bg-red-50 p-4 readable-block" data-text="爭議說法：低能、智能低下、白痴、腦殘、傻瓜、瘋癲、瘋子、神經病、瘋漢。">
+                                <div class="flex items-center gap-2 mb-2 text-red-700 font-bold"><i data-lucide="thumbs-down" class="w-5 h-5"></i> 爭議說法</div>
+                                <div class="text-lg text-gray-600">低能、白痴、瘋子、神經病...等</div>
+                            </div>
+                        </div>
+
+                         <!-- Card 4 -->
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-0 border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                            <div class="bg-blue-50 p-4 readable-block border-b md:border-b-0 md:border-r border-gray-200" data-text="建議說法：視覺障礙者。">
+                                <div class="flex items-center gap-2 mb-2 text-blue-700 font-bold"><i data-lucide="thumbs-up" class="w-5 h-5"></i> 建議說法</div>
+                                <div class="text-lg">視覺障礙者</div>
+                            </div>
+                            <div class="bg-red-50 p-4 readable-block" data-text="爭議說法：瞎子。">
+                                <div class="flex items-center gap-2 mb-2 text-red-700 font-bold"><i data-lucide="thumbs-down" class="w-5 h-5"></i> 爭議說法</div>
+                                <div class="text-lg text-gray-600">瞎子</div>
+                            </div>
+                        </div>
+
+                        <!-- Card 5 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-0 border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                            <div class="bg-blue-50 p-4 readable-block border-b md:border-b-0 md:border-r border-gray-200" data-text="建議說法：聽覺障礙者、聾人。">
+                                <div class="flex items-center gap-2 mb-2 text-blue-700 font-bold"><i data-lucide="thumbs-up" class="w-5 h-5"></i> 建議說法</div>
+                                <div class="text-lg">聽覺障礙者、聾人</div>
+                            </div>
+                            <div class="bg-red-50 p-4 readable-block" data-text="爭議說法：聾子。">
+                                <div class="flex items-center gap-2 mb-2 text-red-700 font-bold"><i data-lucide="thumbs-down" class="w-5 h-5"></i> 爭議說法</div>
+                                <div class="text-lg text-gray-600">聾子</div>
+                            </div>
+                        </div>
+
+                        <!-- Card 6 -->
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-0 border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                            <div class="bg-blue-50 p-4 readable-block border-b md:border-b-0 md:border-r border-gray-200" data-text="建議說法：口語障礙者。">
+                                <div class="flex items-center gap-2 mb-2 text-blue-700 font-bold"><i data-lucide="thumbs-up" class="w-5 h-5"></i> 建議說法</div>
+                                <div class="text-lg">口語障礙者</div>
+                            </div>
+                            <div class="bg-red-50 p-4 readable-block" data-text="爭議說法：啞巴、喑啞。">
+                                <div class="flex items-center gap-2 mb-2 text-red-700 font-bold"><i data-lucide="thumbs-down" class="w-5 h-5"></i> 爭議說法</div>
+                                <div class="text-lg text-gray-600">啞巴、喑啞</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 補充提醒 -->
+                     <div class="mt-4 readable-block bg-yellow-50 p-4 rounded-xl border border-yellow-200" data-text="提醒您：提到非身心障礙者時，請避免使用正常人，以免暗示障礙者是不正常的。不應把障礙類別當作貶低別人的用語。">
+                        <ul class="list-disc list-inside space-y-2">
+                            <li>提到非身心障礙者時，請避免使用「正常人」，以免暗示障礙者是不正常的。</li>
+                            <li>不應把障礙類別當作貶低別人的用語。</li>
+                        </ul>
+                    </div>
+
+                    <!-- 小百科 -->
+                    <div class="mt-4 readable-block bg-purple-50 p-4 rounded-xl border border-purple-200" data-text="小百科。視障者相對為明眼人。聽障者的相對為聽人。輪椅使用者的相對為直立人。">
+                        <h4 class="font-bold text-purple-700 mb-2 flex items-center gap-2">
+                            <i data-lucide="book" class="w-4 h-4"></i> 小百科
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <div class="bg-white p-2 rounded shadow-sm text-center">視障者 <span class="text-gray-400">↔</span> 明眼人</div>
+                            <div class="bg-white p-2 rounded shadow-sm text-center">聽障者 <span class="text-gray-400">↔</span> 聽人</div>
+                            <div class="bg-white p-2 rounded shadow-sm text-center">輪椅使用者 <span class="text-gray-400">↔</span> 直立人</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 點3 -->
+                <div>
+                    <div class="readable-block mb-4" data-text="三、營造無障礙的環境，提供可及性格式的資訊。">
+                        <h3 class="text-xl font-bold text-orange-700">3. 營造無障礙的環境，提供可及性格式的資訊</h3>
+                    </div>
+
+                    <div class="grid gap-4">
+                        <div class="readable-block bg-orange-50 p-4 rounded-xl flex items-start gap-4" data-text="例如：不拒絕導盲犬及導盲幼犬進出公共場所、營業場所。">
+                             <div class="bg-white p-2 rounded-full shadow-sm text-orange-500">
+                                <i data-lucide="dog" class="w-6 h-6"></i>
+                             </div>
+                            <p>不拒絕導盲犬及導盲幼犬進出公共場所、營業場所。</p>
+                        </div>
+                        
+                        <div class="readable-block bg-orange-50 p-4 rounded-xl flex items-start gap-4" data-text="例如：提供視覺障礙者點字、可報讀的文件或有聲書。">
+                            <div class="bg-white p-2 rounded-full shadow-sm text-orange-500">
+                                <i data-lucide="file-audio" class="w-6 h-6"></i>
+                             </div>
+                            <p>提供視覺障礙者點字、可報讀的文件或有聲書。</p>
+                        </div>
+
+                         <div class="readable-block bg-orange-50 p-4 rounded-xl flex items-start gap-4" data-text="讓聽覺障礙者透過手語翻譯或是同步聽打瞭解資訊。">
+                            <div class="bg-white p-2 rounded-full shadow-sm text-orange-500">
+                                <i data-lucide="languages" class="w-6 h-6"></i>
+                             </div>
+                            <p>讓聽覺障礙者透過手語翻譯或是同步聽打瞭解資訊。</p>
+                        </div>
+
+                         <div class="readable-block bg-orange-50 p-4 rounded-xl flex items-start gap-4" data-text="提供心智障礙者易讀資訊，把複雜困難的資訊轉譯成容易理解的內容，以利接收資訊並自主表達意見。">
+                            <div class="bg-white p-2 rounded-full shadow-sm text-orange-500">
+                                <i data-lucide="book-open-check" class="w-6 h-6"></i>
+                             </div>
+                            <p>提供心智障礙者易讀資訊(把複雜困難的資訊轉譯成容易理解的內容)，以利接收資訊並自主表達意見。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // 初始化 Icons
+        lucide.createIcons();
+
+        // TTS 變數
+        let synth = window.speechSynthesis;
+        let voices = [];
+        let currentUtterance = null;
+        let readingAll = false;
+        let allReadableElements = [];
+        let currentReadIndex = 0;
+
+        // DOM 元素
+        const btnSettings = document.getElementById('btn-settings');
+        const settingsMenu = document.getElementById('settings-menu');
+        const voiceSelect = document.getElementById('voice-select');
+        const rateRange = document.getElementById('rate-range');
+        const fontSizeRange = document.getElementById('font-size-range');
+        const btnReadAll = document.getElementById('btn-read-all');
+        const btnStop = document.getElementById('btn-stop');
+
+        // 初始化語音列表
+        function populateVoices() {
+            voices = synth.getVoices().filter(voice => voice.lang.includes('zh') || voice.lang.includes('TW') || voice.lang.includes('CN'));
+            
+            // 如果沒找到中文，就列出所有
+            if (voices.length === 0) {
+                 voices = synth.getVoices();
+            }
+
+            voiceSelect.innerHTML = '';
+            voices.forEach((voice) => {
+                const option = document.createElement('option');
+                option.textContent = `${voice.name} (${voice.lang})`;
+                option.setAttribute('data-lang', voice.lang);
+                option.setAttribute('data-name', voice.name);
+                voiceSelect.appendChild(option);
+            });
+
+            // 嘗試預選 Google 中文 或 微軟 Hanhan
+            const preferredVoice = voices.find(v => v.name.includes("Google") && (v.lang.includes("TW") || v.lang.includes("zh-TW")));
+            if(preferredVoice) {
+                voiceSelect.value = `${preferredVoice.name} (${preferredVoice.lang})`;
+            }
+        }
+
+        populateVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = populateVoices;
+        }
+
+        // 朗讀功能
+        function speak(text, element) {
+            if (synth.speaking) {
+                synth.cancel();
+            }
+            
+            // 移除所有高亮
+            document.querySelectorAll('.reading-active').forEach(el => el.classList.remove('reading-active'));
+
+            if (text !== '') {
+                // 加上高亮
+                if(element) {
+                    element.classList.add('reading-active');
+                    // 滾動到視野中
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                
+                // 設定聲音
+                const selectedOption = voiceSelect.selectedOptions[0];
+                if (selectedOption) {
+                    const selectedName = selectedOption.getAttribute('data-name');
+                    utterance.voice = voices.find(v => v.name === selectedName);
+                }
+
+                // 設定速度
+                utterance.rate = rateRange.value;
+
+                // 朗讀結束事件
+                utterance.onend = function(event) {
+                    if(element) element.classList.remove('reading-active');
+                    if(readingAll) {
+                        playNext();
+                    }
+                };
+
+                synth.speak(utterance);
+            }
+        }
+
+        // 停止朗讀
+        function stopSpeaking() {
+            synth.cancel();
+            readingAll = false;
+            document.querySelectorAll('.reading-active').forEach(el => el.classList.remove('reading-active'));
+        }
+
+        // 點擊朗讀事件綁定
+        const readableBlocks = document.querySelectorAll('.readable-block');
+        allReadableElements = Array.from(readableBlocks);
+
+        readableBlocks.forEach((block, index) => {
+            block.addEventListener('click', (e) => {
+                // 停止全文朗讀模式，轉為單點朗讀
+                readingAll = false;
+                // 防止點擊內部元素時冒泡導致多次觸發(雖結構上大多平層，但保險)
+                e.stopPropagation();
+                
+                const text = block.getAttribute('data-text');
+                speak(text, block);
+            });
+        });
+
+        // 全文朗讀邏輯
+        function playNext() {
+            if (currentReadIndex < allReadableElements.length) {
+                const element = allReadableElements[currentReadIndex];
+                const text = element.getAttribute('data-text');
+                currentReadIndex++;
+                speak(text, element);
+            } else {
+                readingAll = false;
+                currentReadIndex = 0;
+            }
+        }
+
+        btnReadAll.addEventListener('click', () => {
+            stopSpeaking();
+            readingAll = true;
+            currentReadIndex = 0;
+            playNext();
+        });
+
+        btnStop.addEventListener('click', stopSpeaking);
+
+        // UI 互動邏輯
+        btnSettings.addEventListener('click', () => {
+            settingsMenu.classList.toggle('hidden');
+        });
+
+        // 字體大小拖拉切換
+        fontSizeRange.addEventListener('input', (e) => {
+            const sizePercent = e.target.value;
+            // 直接修改根元素的 font-size，因為 Tailwind 使用 rem，所有元素會等比例放大
+            document.documentElement.style.fontSize = `${16 * (sizePercent / 100)}px`;
+        });
+
+    </script>
+</body>
+</html>
